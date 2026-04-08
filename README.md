@@ -1,5 +1,9 @@
 # protect-bypass
 
+**Created by Jason Mello & His Buddy Claude** 
+
+**USE AT YOUR OWN RISK**
+
 **A UniFi Protect diagnostic and footage recovery tool that actually works.**
 
 Because sometimes you need your own footage and Protect's case manager just... doesn't.
