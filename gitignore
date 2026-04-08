@@ -1,7 +1,8 @@
 node_modules/
-package-lock.json
+.pb-config.json
 *.mp4
 *.h264
 *.hevc
 *.ubv
 .DS_Store
+npm-debug.log*

@@ -9,7 +9,7 @@
     "postinstall": "node scripts/setup.js --post-install"
   },
   "keywords": ["unifi", "protect", "nvr", "ubv", "footage", "recovery"],
-  "author": "Jason Mello <jason@stellartechco.com>",
+  "author": "Stellar Tech Co",
   "license": "MIT",
   "repository": {
     "type": "git",
