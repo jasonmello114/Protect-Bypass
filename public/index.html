@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>protect-bypass</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--bg2:#161b27;--bg3:#1e2436;--bg4:#252d42;
+  --bd:#2a3249;--bd2:#334060;
+  --txt:#e8eaf0;--txt2:#8b92a8;--txt3:#4a5270;
+  --blue:#3d6fff;--blue2:#2d55cc;--bdim:#1e3a7a;--bglow:#3d6fff22;
+  --red:#e84040;--rdim:#3d1010;
+  --grn:#22c97a;--gdim:#0d3324;
+  --amb:#f5a623;--adim:#3d2a00;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'Inter',system-ui,sans-serif;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--txt);font-size:13px;min-height:100vh;display:flex;flex-direction:column}
+
+.hdr{background:var(--bg2);border-bottom:1px solid var(--bd);padding:0 20px;height:48px;display:flex;align-items:center;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:100}
+.hdr-logo{width:26px;height:26px;background:var(--red);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:700;color:#fff;font-family:var(--mono)}
+.hdr-title{font-size:14px;font-weight:600;letter-spacing:-0.4px;flex:1;font-family:var(--mono)}
+.hdr-title em{color:var(--red);font-style:normal}
+.hdr-nvr{font-family:var(--mono);font-size:11px;color:var(--txt2);background:var(--bg3);border:1px solid var(--bd);padding:3px 10px;border-radius:5px}
+.hdr-clk{font-family:var(--mono);font-size:11px;color:var(--txt3)}
+
+.layout{display:grid;grid-template-columns:272px 1fr;flex:1;min-height:0;overflow:hidden}
+
+/* SIDEBAR */
+.sb{background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow-y:auto}
+.sbs{padding:14px 16px;border-bottom:1px solid var(--bd)}
+.sbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--txt3);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+
+/* Profiles */
+.profiles{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.profile{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:6px;border:1px solid var(--bd);cursor:pointer;transition:all 0.12s;background:var(--bg3)}
+.profile:hover{border-color:var(--bd2);background:var(--bg4)}
+.profile.active{border-color:var(--blue);background:var(--bglow)}
+.pdot{width:7px;height:7px;border-radius:50%;background:var(--txt3);flex-shrink:0}
+.pdot.on{background:var(--grn)} .pdot.err{background:var(--red)}
+.pinfo{flex:1;min-width:0}
+.pname{font-size:12px;font-weight:500;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pip{font-family:var(--mono);font-size:10px;color:var(--txt3);margin-top:1px}
+.pdel{width:18px;height:18px;border:none;background:none;color:var(--txt3);cursor:pointer;font-size:13px;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.pdel:hover{color:var(--red);background:var(--rdim)}
+.no-prof{font-size:11px;color:var(--txt3);padding:2px 0}
+
+/* Save inline form */
+.save-form{background:var(--bg3);border:1px solid var(--bd2);border-radius:7px;padding:12px;margin-top:6px;display:none}
+.save-form.open{display:block}
+.sf-field{margin-bottom:6px}
+.sf-field label{display:block;font-size:10px;color:var(--txt3);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.4px;font-weight:500}
+.sf-field input{width:100%;padding:5px 8px;border:1px solid var(--bd);border-radius:4px;font-size:12px;font-family:var(--sans);background:var(--bg4);color:var(--txt)}
+.sf-field input:focus{outline:none;border-color:var(--blue)}
+.sf-row{display:flex;gap:6px;margin-top:8px}
+.sf-row button{flex:1;padding:6px;font-size:12px;border-radius:5px;cursor:pointer;font-family:var(--sans);border:1px solid var(--bd);background:var(--bg4);color:var(--txt2);transition:all 0.12s}
+.sf-row button.ok{background:var(--blue);border-color:var(--blue);color:#fff}
+.sf-row button.ok:hover{background:var(--blue2)}
+
+/* Fields */
+.field{margin-bottom:7px}
+.field label{display:block;font-size:10px;font-weight:500;color:var(--txt3);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.5px}
+.field input{width:100%;padding:6px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:var(--sans);background:var(--bg3);color:var(--txt);transition:border-color 0.12s}
+.field input:focus{outline:none;border-color:var(--blue)}
+.field input::placeholder{color:var(--txt3)}
+.frow{display:grid;grid-template-columns:1fr 68px;gap:6px}
+
+.btn{width:100%;padding:8px;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.12s;font-family:var(--sans)}
+.btn-p{background:var(--blue);color:#fff}
+.btn-p:hover{background:var(--blue2)}
+.btn-p:disabled{background:var(--bdim);color:var(--txt3);cursor:not-allowed}
+.btn-g{background:transparent;color:var(--txt2);border:1px solid var(--bd);margin-top:5px}
+.btn-g:hover{background:var(--bg3);border-color:var(--bd2)}
+.btn-g:disabled{opacity:0.4;cursor:not-allowed}
+.btn-add{padding:2px 9px;font-size:10px;background:var(--bg3);border:1px solid var(--bd);color:var(--txt2);border-radius:4px;cursor:pointer;font-family:var(--sans)}
+.btn-add:hover{border-color:var(--bd2);color:var(--txt)}
+
+/* Pill */
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 9px;border-radius:20px;margin-top:8px;font-family:var(--mono)}
+.pill .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.p-idle{background:var(--bg4);color:var(--txt3)} .p-idle .dot{background:var(--txt3)}
+.p-conn{background:var(--adim);color:var(--amb)} .p-conn .dot{background:var(--amb);animation:blink 1s infinite}
+.p-ok{background:var(--gdim);color:var(--grn)} .p-ok .dot{background:var(--grn)}
+.p-err{background:var(--rdim);color:var(--red)} .p-err .dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+.prog{margin-top:8px;display:none}
+.prog-tr{height:2px;background:var(--bg4);border-radius:1px}
+.prog-fi{height:2px;background:var(--blue);border-radius:1px;width:0;transition:width 0.2s}
+.prog-tx{font-size:10px;color:var(--txt3);margin-top:3px;font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* RAM */
+.ram-sec{padding:14px 16px;border-bottom:1px solid var(--bd)}
+.ram-row{display:flex;align-items:baseline;gap:6px;margin-bottom:5px}
+.ram-v{font-size:24px;font-weight:600;font-family:var(--mono);color:var(--txt)}
+.ram-u{font-size:12px;color:var(--txt3)}
+.ram-b{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px}
+.rb-ok{background:var(--gdim);color:var(--grn)} .rb-w{background:var(--adim);color:var(--amb)} .rb-c{background:var(--rdim);color:var(--red)}
+.spark{width:100%;height:34px;display:block;margin-bottom:3px}
+.ram-m{font-size:10px;color:var(--txt3);font-family:var(--mono)}
+.btn-mon{width:100%;margin-top:6px;padding:5px 8px;background:var(--bg3);border:1px solid var(--bd);border-radius:5px;color:var(--txt2);font-size:11px;cursor:pointer;font-family:var(--sans);transition:all 0.12s}
+.btn-mon:hover{border-color:var(--bd2)}
+.btn-mon.on{background:var(--gdim);border-color:var(--grn);color:var(--grn)}
+
+/* History */
+.hist-sec{padding:14px 16px;flex:1;overflow-y:auto;min-height:0}
+.hi{padding:6px 8px;border-radius:5px;margin-bottom:3px;border:1px solid transparent}
+.hi:hover{background:var(--bg3);border-color:var(--bd)}
+.hi-time{color:var(--txt3);font-family:var(--mono);font-size:10px}
+.hi-host{color:var(--txt2);font-weight:500;margin:1px 0;font-size:12px}
+.hi-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+.htag{font-size:10px;padding:1px 5px;border-radius:3px;font-family:var(--mono)}
+.htc{background:var(--rdim);color:var(--red)} .htw{background:var(--adim);color:var(--amb)} .hto{background:var(--gdim);color:var(--grn)}
+
+/* MAIN */
+.main{overflow-y:auto;background:var(--bg)}
+.mi{padding:20px;max-width:1100px}
+
+/* Summary */
+.sum-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.sc{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px 14px}
+.sn{font-size:28px;font-weight:600;font-family:var(--mono);line-height:1}
+.sl{font-size:11px;color:var(--txt3);margin-top:3px}
+.sc-c .sn{color:var(--red)} .sc-w .sn{color:var(--amb)} .sc-ok .sn{color:var(--grn)} .sc-t .sn{color:var(--blue)}
+
+/* Findings */
+.findings{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px;margin-bottom:16px}
+.ftitle{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.7px;color:var(--txt3);margin-bottom:10px}
+.finding{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:5px;margin-bottom:4px;font-size:12px;line-height:1.45}
+.f-c{background:var(--rdim);border-left:2px solid var(--red)} .f-w{background:var(--adim);border-left:2px solid var(--amb)} .f-i{background:var(--bglow);border-left:2px solid var(--blue)} .f-ok{background:var(--gdim);border-left:2px solid var(--grn)}
+.fsev{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;width:44px;flex-shrink:0;margin-top:1px}
+.fc{color:var(--red)} .fw{color:var(--amb)} .fi{color:var(--blue)} .fok{color:var(--grn)}
+
+/* Mode tabs */
+.mtabs{display:flex;border-bottom:1px solid var(--bd);margin-bottom:16px;background:var(--bg2);border-radius:8px 8px 0 0;border:1px solid var(--bd);overflow:hidden}
+.mt{padding:10px 16px;font-size:12px;font-weight:500;color:var(--txt3);cursor:pointer;border-right:1px solid var(--bd);white-space:nowrap;transition:all 0.12s}
+.mt:last-child{border-right:none}
+.mt:hover{background:var(--bg3);color:var(--txt2)}
+.mt.active{background:var(--bg3);color:var(--blue);box-shadow:inset 0 -2px 0 var(--blue)}
+
+/* Cat tabs */
+.ctabs{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap}
+.ct{padding:5px 12px;font-size:11px;font-weight:500;color:var(--txt3);cursor:pointer;border:1px solid var(--bd);border-radius:20px;background:var(--bg2);transition:all 0.12s}
+.ct:hover{border-color:var(--bd2);color:var(--txt2)}
+.ct.active{background:var(--bglow);border-color:var(--blue);color:var(--blue)}
+
+/* Checks */
+.chks{background:var(--bg2);border:1px solid var(--bd);border-radius:0 0 8px 8px;border-top:none}
+.chk{border-bottom:1px solid var(--bd)}
+.chk:last-child{border-bottom:none}
+.chk-h{padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;transition:background 0.1s}
+.chk-h:hover{background:var(--bg3)}
+.chk-ic{font-size:12px;width:16px;text-align:center;flex-shrink:0;font-family:var(--mono);color:var(--txt3)}
+.chk-tl{font-size:12px;font-weight:500;flex:1;color:var(--txt)}
+.chk-ct{font-size:10px;color:var(--txt3);margin-right:4px}
+.chk-b{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;font-family:var(--mono)}
+.cb-p{background:var(--bg4);color:var(--txt3)} .cb-r{background:var(--adim);color:var(--amb)} .cb-d{background:var(--gdim);color:var(--grn)} .cb-e{background:var(--rdim);color:var(--red)}
+.chk-ar{font-size:9px;color:var(--txt3);margin-left:4px;transition:transform 0.15s}
+.chk-out{padding:0 14px 12px;display:none}
+.chk-pre{background:var(--bg);color:#b8c0d8;padding:10px 12px;border-radius:6px;font-size:11px;font-family:var(--mono);white-space:pre-wrap;word-break:break-all;max-height:280px;overflow-y:auto;line-height:1.6;border:1px solid var(--bd)}
+.chk.xp .chk-out{display:block}
+.chk.xp .chk-ar{transform:rotate(90deg)}
+
+/* Actions */
+.ag{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-bottom:16px}
+.ac{background:var(--bg2);border:1px solid var(--bd);border-radius:7px;padding:10px 12px;cursor:pointer;transition:all 0.12s}
+.ac:hover{border-color:var(--bd2);background:var(--bg3)}
+.ac.dang{border-color:var(--rdim)}
+.ac.dang:hover{border-color:var(--red);background:var(--rdim)}
+.ac-n{font-size:12px;font-weight:500;color:var(--txt);margin-bottom:2px}
+.ac-d{font-size:10px;color:var(--txt3)}
+.act-res{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px;margin-bottom:14px;display:none}
+.act-rt{font-size:11px;font-weight:500;color:var(--txt2);margin-bottom:8px}
+.act-rp{background:var(--bg);color:#b8c0d8;padding:10px;border-radius:6px;font-size:11px;font-family:var(--mono);white-space:pre-wrap;max-height:220px;overflow-y:auto;border:1px solid var(--bd)}
+
+/* Recovery */
+.rp{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:18px;margin-bottom:12px}
+.rp-t{font-size:12px;font-weight:600;color:var(--txt);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sbadge{width:20px;height:20px;background:var(--bdim);color:var(--blue);border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--bdim);font-family:var(--mono)}
+.sbadge.done{background:var(--gdim);color:var(--grn);border-color:var(--gdim)}
+
+.cam-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px}
+.cam-c{border:1px solid var(--bd);border-radius:7px;padding:10px 12px;cursor:pointer;transition:all 0.12s;background:var(--bg3)}
+.cam-c:hover{border-color:var(--bd2);background:var(--bg4)}
+.cam-c.sel{border-color:var(--blue);background:var(--bglow);box-shadow:0 0 0 1px var(--bdim)}
+.cam-n{font-size:13px;font-weight:500;color:var(--txt);margin-bottom:3px}
+.cam-m{font-size:10px;color:var(--txt3);font-family:var(--mono)}
+.ldg{font-size:12px;color:var(--txt3);padding:8px 0}
+
+.dates{display:flex;flex-wrap:wrap;gap:6px}
+.dchip{padding:5px 12px;border:1px solid var(--bd);border-radius:20px;font-size:12px;font-family:var(--mono);cursor:pointer;background:var(--bg3);color:var(--txt2);transition:all 0.12s}
+.dchip:hover{border-color:var(--bd2);color:var(--txt)}
+.dchip.sel{background:var(--bdim);color:var(--blue);border-color:var(--blue)}
+
+.fbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.fbar input{flex:1;padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:var(--mono);background:var(--bg3);color:var(--txt)}
+.fbar input:focus{outline:none;border-color:var(--blue)}
+.fbar input::placeholder{color:var(--txt3)}
+.chf{display:flex;gap:3px}
+.chfb{padding:4px 10px;border:1px solid var(--bd);border-radius:4px;font-size:11px;font-weight:500;cursor:pointer;background:var(--bg3);color:var(--txt3);transition:all 0.12s;font-family:var(--sans)}
+.chfb:hover{border-color:var(--bd2);color:var(--txt2)}
+.chfb.active{background:var(--bdim);color:var(--blue);border-color:var(--blue)}
+.fcnt{font-size:11px;color:var(--txt3);font-family:var(--mono);white-space:nowrap}
+
+.flist{border:1px solid var(--bd);border-radius:6px;overflow:hidden}
+.flhdr{display:grid;grid-template-columns:80px 60px 1fr 60px 90px;padding:7px 12px;background:var(--bg);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--txt3);gap:8px;border-bottom:1px solid var(--bd)}
+.frow{display:grid;grid-template-columns:80px 60px 1fr 60px 90px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bd);font-size:12px;cursor:pointer;transition:background 0.1s;gap:8px}
+.frow:last-child{border-bottom:none}
+.frow:hover{background:var(--bg3)}
+.frow.sel{background:var(--bglow)}
+.cpill{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600;font-family:var(--mono)}
+.cm{background:var(--bdim);color:var(--blue)} .cs1{background:var(--adim);color:var(--amb)} .cs2{background:var(--gdim);color:var(--grn)}
+.empty{padding:22px;text-align:center;color:var(--txt3);font-size:12px}
+
+.sel-fc{background:var(--bg3);border:1px solid var(--bdim);border-radius:6px;padding:12px 14px;margin-bottom:14px;font-size:12px}
+.sel-fc strong{color:var(--txt);font-size:13px}
+.sfm{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
+.sfmf{display:flex;flex-direction:column;gap:2px}
+.sfml{font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.4px}
+.sfmv{font-size:12px;font-family:var(--mono);color:var(--txt2)}
+
+.rsteps{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.rstep{padding:7px 12px;border-radius:5px;font-size:12px;font-family:var(--mono);background:var(--bg);color:var(--txt3);border:1px solid var(--bd)}
+.rstep.active{background:var(--adim);color:var(--amb);border-color:var(--adim)}
+.rstep.done{background:var(--gdim);color:var(--grn);border-color:var(--gdim)}
+.rstep.error{background:var(--rdim);color:var(--red);border-color:var(--rdim)}
+
+.rlog{background:var(--bg);color:#b8c0d8;padding:10px 12px;border-radius:6px;font-size:11px;font-family:var(--mono);white-space:pre-wrap;max-height:240px;overflow-y:auto;line-height:1.6;margin-top:10px;border:1px solid var(--bd)}
+.dlbtn{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:8px 16px;background:var(--gdim);color:var(--grn);border:1px solid var(--grn);border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;transition:all 0.12s;font-family:var(--sans)}
+.dlbtn:hover{background:var(--grn);color:#0a1f14}
+
+.iflds{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.ifr{display:flex;align-items:center;gap:10px}
+.ifr label{font-size:10px;color:var(--txt3);width:70px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.4px;font-weight:500}
+.ifr input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:var(--mono);background:var(--bg3);color:var(--txt)}
+.ifr input:focus{outline:none;border-color:var(--blue)}
+.ifhint{font-size:10px;color:var(--txt3)}
+
+.arow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.bsm{padding:7px 14px;border:1px solid var(--bd);border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;background:var(--bg3);color:var(--txt2);transition:all 0.12s;font-family:var(--sans)}
+.bsm:hover{border-color:var(--bd2);color:var(--txt)}
+.bsm-p{background:var(--blue);color:#fff;border-color:var(--blue)}
+.bsm-p:hover{background:var(--blue2);border-color:var(--blue2)}
+.bsm-p:disabled{background:var(--bdim);color:var(--txt3);cursor:not-allowed}
+
+.sdiv{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.7px;color:var(--txt3);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--bd)}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-logo">pb</div>
+  <div class="hdr-title">protect<em>-bypass</em></div>
+  <div class="hdr-nvr" id="hdrNvr">not connected</div>
+  <div class="hdr-clk" id="hdrClk"></div>
+</div>
+
+<div class="layout">
+<div class="sb">
+
+  <!-- Saved NVRs -->
+  <div class="sbs">
+    <div class="sbl">Saved NVRs <button class="btn-add" onclick="toggleSaveForm()">+ Add</button></div>
+    <div class="profiles" id="profiles"></div>
+    <div class="save-form" id="saveForm">
+      <div class="sf-field"><label>Nickname</label><input id="sfName" placeholder="e.g. FreeRaceHorseNVR" /></div>
+      <div class="sf-field"><label>Host / IP</label><input id="sfHost" placeholder="192.168.1.36" /></div>
+      <div class="sf-field"><label>Port</label><input id="sfPort" placeholder="22" /></div>
+      <div class="sf-field"><label>Username</label><input id="sfUser" placeholder="root" /></div>
+      <div class="sf-field"><label>Password</label><input id="sfPass" type="password" placeholder="" /></div>
+      <div class="sf-row">
+        <button onclick="toggleSaveForm()">Cancel</button>
+        <button class="ok" onclick="saveProfile()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connection -->
+  <div class="sbs">
+    <div class="sbl">Connection</div>
+    <div class="frow" style="gap:6px;display:grid;grid-template-columns:1fr 68px;margin-bottom:7px">
+      <div class="field" style="margin:0"><label>Host / IP</label><input id="host" placeholder="192.168.1.36" /></div>
+      <div class="field" style="margin:0"><label>Port</label><input id="port" value="22" /></div>
+    </div>
+    <div class="field"><label>Username</label><input id="username" value="root" /></div>
+    <div class="field"><label>Password</label><input id="password" type="password" /></div>
+    <button class="btn btn-p" id="btnRun" onclick="startDiag()">Run Full Diagnostics</button>
+    <button class="btn btn-g" id="btnRpt" onclick="saveReport()" disabled>Save Report (.txt)</button>
+    <div class="pill p-idle" id="connPill"><span class="dot"></span><span id="connTxt">Idle</span></div>
+    <div class="prog" id="prog">
+      <div class="prog-tr"><div class="prog-fi" id="progFi"></div></div>
+      <div class="prog-tx" id="progTx"></div>
+    </div>
+  </div>
+
+  <!-- RAM -->
+  <div class="ram-sec">
+    <div class="sbl">ms.service RAM</div>
+    <div class="ram-row">
+      <div class="ram-v" id="ramV">—</div>
+      <div class="ram-u">MB</div>
+      <div class="ram-b" id="ramB"></div>
+    </div>
+    <canvas class="spark" id="spark" width="240" height="34"></canvas>
+    <div class="ram-m" id="ramM">Not polling</div>
+    <button class="btn-mon" id="btnMon" onclick="toggleMon()">Start live monitor (30s)</button>
+  </div>
+
+  <!-- History -->
+  <div class="hist-sec">
+    <div class="sbl">Run history</div>
+    <div id="histList"><div style="font-size:11px;color:var(--txt3)">No runs yet.</div></div>
+  </div>
+
+</div><!-- /sb -->
+
+<div class="main"><div class="mi">
+
+  <div class="sum-row" id="sumRow" style="display:none">
+    <div class="sc sc-c"><div class="sn" id="nC">0</div><div class="sl">Critical</div></div>
+    <div class="sc sc-w"><div class="sn" id="nW">0</div><div class="sl">Warnings</div></div>
+    <div class="sc sc-ok"><div class="sn" id="nOk">0</div><div class="sl">Passing</div></div>
+    <div class="sc sc-t"><div class="sn" id="nT">0</div><div class="sl">Checks run</div></div>
+  </div>
+
+  <div class="findings" id="findingsBlock" style="display:none">
+    <div class="ftitle">Findings</div>
+    <div id="findingsList"></div>
+  </div>
+
+  <div id="actSec" style="display:none">
+    <div class="sdiv">Quick actions</div>
+    <div class="ag" id="actGrid"></div>
+    <div class="act-res" id="actRes"><div class="act-rt" id="actRT"></div><pre class="act-rp" id="actRP"></pre></div>
+  </div>
+
+  <div class="mtabs">
+    <div class="mt active" id="tabDiag" onclick="setMode('diag')">Diagnostics</div>
+    <div class="mt" id="tabRec" onclick="setMode('rec')">Footage Recovery</div>
+  </div>
+
+  <!-- DIAG -->
+  <div id="diagMode">
+    <div class="ctabs">
+      <div class="ct active" id="cAll" onclick="fcat('all')">All</div>
+      <div class="ct" id="cSystem" onclick="fcat('system')">System</div>
+      <div class="ct" id="cStorage" onclick="fcat('storage')">Storage</div>
+      <div class="ct" id="cServices" onclick="fcat('services')">Services</div>
+      <div class="ct" id="cCameras" onclick="fcat('cameras')">Cameras</div>
+      <div class="ct" id="cNetwork" onclick="fcat('network')">Network</div>
+      <div class="ct" id="cLogs" onclick="fcat('logs')">Logs</div>
+    </div>
+    <div class="chks" id="chksWrap"></div>
+  </div>
+
+  <!-- RECOVERY -->
+  <div id="recMode" style="display:none">
+
+    <div class="rp">
+      <div class="rp-t"><span class="sbadge" id="sb1">1</span> Select camera</div>
+      <div id="cgWrap"><div class="ldg">Connect to an NVR to load cameras.</div></div>
+      <button class="bsm" style="margin-top:10px" onclick="loadCams()">Reload cameras</button>
+    </div>
+
+    <div class="rp" id="pDate" style="display:none">
+      <div class="rp-t"><span class="sbadge" id="sb2">2</span> Select date</div>
+      <div id="dgWrap"><div class="ldg">Loading...</div></div>
+    </div>
+
+    <div class="rp" id="pFiles" style="display:none">
+      <div class="rp-t"><span class="sbadge" id="sb3">3</span> Select clip</div>
+      <div class="fbar">
+        <input type="text" id="fsearch" placeholder="Search by time..." oninput="renderFiles()" />
+        <div class="chf">
+          <button class="chfb active" id="chAll" onclick="setCh('all')">All</button>
+          <button class="chfb" id="chMain" onclick="setCh('0')">Main</button>
+          <button class="chfb" id="chS1" onclick="setCh('1')">Sub1</button>
+          <button class="chfb" id="chS2" onclick="setCh('2')">Sub2</button>
+        </div>
+        <div class="fcnt" id="fcnt"></div>
+      </div>
+      <div class="flist">
+        <div class="flhdr"><div>Channel</div><div>Size</div><div>Start (UTC)</div><div></div><div></div></div>
+        <div id="fbody"></div>
+      </div>
+    </div>
+
+    <div class="rp" id="pRecover" style="display:none">
+      <div class="rp-t"><span class="sbadge" id="sb4">4</span> Recover to MP4</div>
+      <div class="sel-fc" id="selFC"></div>
+      <div class="iflds">
+        <div class="ifr"><label>FPS</label><input type="number" id="recFps" value="20" style="width:70px"/><span class="ifhint">check ubvinfo — usually 20</span></div>
+        <div class="ifr"><label>Trim start</label><input type="text" id="recTS" placeholder="HH:MM:SS (optional)" style="width:180px"/></div>
+        <div class="ifr"><label>Trim end</label><input type="text" id="recTE" placeholder="HH:MM:SS (optional)" style="width:180px"/></div>
+      </div>
+      <div class="arow">
+        <button class="bsm" onclick="inspectUbv()">Inspect UBV (read-only)</button>
+        <button class="bsm bsm-p" id="btnRec" onclick="startRec()">Start recovery pipeline</button>
+      </div>
+      <div id="inspWrap" style="display:none;margin-top:10px">
+        <div class="sdiv">UBV info</div>
+        <pre class="rlog" id="inspLog"></pre>
+      </div>
+      <div id="pipeWrap" style="display:none;margin-top:14px">
+        <div class="sdiv">Pipeline</div>
+        <div class="rsteps">
+          <div class="rstep" id="rs1">1. Download UBV from NVR (SFTP, read-only)</div>
+          <div class="rstep" id="rs2">2. Get mapping file (.ubv.txt)</div>
+          <div class="rstep" id="rs3">3. Check remux binary</div>
+          <div class="rstep" id="rs4">4. Extract H.264 / HEVC</div>
+          <div class="rstep" id="rs5">5. Re-encode with corrected timestamps</div>
+        </div>
+        <pre class="rlog" id="recLog"></pre>
+        <div id="dlWrap" style="display:none">
+          <a class="dlbtn" id="dlBtn" href="#" download>Download MP4</a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /recMode -->
+
+</div></div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+var allChecks=[],allResults={},analysisData={issues:[],ok:[]},runHistory=[];
+var monInt=null,sparkData=[];
+var macToName={},selCam=null,selDate=null,allFiles=[],selFile=null,chFil='all';
+var loadedDates=[], loadedCams=[];
+var profs=[];
+
+// ── Profiles ──────────────────────────────────────────────────────────
+function loadProfs(){ try{ profs=JSON.parse(localStorage.getItem('pb_profs')||'[]'); }catch(e){ profs=[]; } renderProfs(); }
+function saveProfs(){ localStorage.setItem('pb_profs',JSON.stringify(profs)); }
+function renderProfs(){
+  var w=document.getElementById('profiles');
+  if(!profs.length){ w.innerHTML='<div class="no-prof">No saved NVRs yet.</div>'; return; }
+  w.innerHTML=profs.map(function(p,i){
+    return '<div class="profile" id="prof'+i+'" onclick="loadProf('+i+')">' +
+      '<div class="pdot" id="pd'+i+'"></div>' +
+      '<div class="pinfo"><div class="pname">'+esc(p.name)+'</div><div class="pip">'+esc(p.host)+'</div></div>' +
+      '<button class="pdel" onclick="event.stopPropagation();delProf('+i+')" title="Remove">×</button></div>';
+  }).join('');
+}
+function loadProf(i){
+  var p=profs[i]; if(!p) return;
+  document.getElementById('host').value=p.host||'';
+  document.getElementById('port').value=p.port||'22';
+  document.getElementById('username').value=p.user||'root';
+  document.getElementById('password').value=p.pass||'';
+  document.querySelectorAll('.profile').forEach(function(el){ el.classList.remove('active'); });
+  var el=document.getElementById('prof'+i); if(el) el.classList.add('active');
+}
+function delProf(i){ if(!confirm('Remove '+profs[i].name+'?')) return; profs.splice(i,1); saveProfs(); renderProfs(); }
+function toggleSaveForm(){
+  var f=document.getElementById('saveForm'); f.classList.toggle('open');
+  if(f.classList.contains('open')){
+    document.getElementById('sfHost').value=document.getElementById('host').value;
+    document.getElementById('sfPort').value=document.getElementById('port').value;
+    document.getElementById('sfUser').value=document.getElementById('username').value;
+    document.getElementById('sfPass').value=document.getElementById('password').value;
+    document.getElementById('sfName').focus();
+  }
+}
+function saveProfile(){
+  var name=document.getElementById('sfName').value.trim();
+  var host=document.getElementById('sfHost').value.trim();
+  if(!name||!host){ alert('Name and host required'); return; }
+  var entry={name:name,host:host,port:document.getElementById('sfPort').value||'22',user:document.getElementById('sfUser').value||'root',pass:document.getElementById('sfPass').value};
+  var idx=profs.findIndex(function(p){ return p.host===host; });
+  if(idx>=0) profs[idx]=entry; else profs.push(entry);
+  saveProfs(); renderProfs(); toggleSaveForm();
+}
+function markProfStatus(host,s){
+  profs.forEach(function(p,i){ if(p.host===host){ var d=document.getElementById('pd'+i); if(d){ d.className='pdot '+(s==='ok'?'on':s==='err'?'err':''); }}});
+}
+
+// ── Clock ─────────────────────────────────────────────────────────────
+setInterval(function(){ document.getElementById('hdrClk').textContent=new Date().toLocaleTimeString(); },1000);
+
+// ── Mode ──────────────────────────────────────────────────────────────
+function setMode(m){
+  document.getElementById('diagMode').style.display=m==='diag'?'':'none';
+  document.getElementById('recMode').style.display=m==='rec'?'':'none';
+  document.getElementById('tabDiag').classList.toggle('active',m==='diag');
+  document.getElementById('tabRec').classList.toggle('active',m==='rec');
+  if(m==='rec'&&!Object.keys(macToName).length) loadCams();
+}
+
+// ── Load checks ───────────────────────────────────────────────────────
+fetch('/checks').then(r=>r.json()).then(function(ch){
+  allChecks=ch;
+  var w=document.getElementById('chksWrap');
+  ch.forEach(function(c){
+    var d=document.createElement('div'); d.className='chk'; d.id='chk_'+c.id; d.dataset.cat=c.category;
+    d.innerHTML='<div class="chk-h" onclick="xpChk(this)"><span class="chk-ic">·</span><span class="chk-tl">'+esc(c.label)+'</span><span class="chk-ct">'+esc(c.category)+'</span><span class="chk-b cb-p" id="b_'+c.id+'">pending</span><span class="chk-ar">▶</span></div><div class="chk-out"><pre class="chk-pre" id="o_'+c.id+'">—</pre></div>';
+    w.appendChild(d);
+  });
+});
+fetch('/actions').then(r=>r.json()).then(function(acts){
+  var g=document.getElementById('actGrid');
+  acts.forEach(function(a){
+    var c=document.createElement('div'); c.className='ac'+(a.danger?' dang':'');
+    c.innerHTML='<div class="ac-n">'+esc(a.label)+'</div><div class="ac-d">'+(a.danger?'⚠ ':'')+(a.description||'')+'</div>';
+    c.onclick=function(){ runAct(a); }; g.appendChild(c);
+  });
+  document.getElementById('actSec').style.display='';
+});
+
+function fcat(cat){
+  ['all','system','storage','services','cameras','network','logs'].forEach(function(c){
+    var el=document.getElementById('c'+c.charAt(0).toUpperCase()+c.slice(1)); if(el) el.classList.toggle('active',c===cat);
+  });
+  document.querySelectorAll('.chk').forEach(function(el){ el.style.display=(cat==='all'||el.dataset.cat===cat)?'':'none'; });
+}
+function xpChk(h){ h.parentElement.classList.toggle('xp'); }
+
+function setPill(s,t){
+  var p=document.getElementById('connPill'); p.className='pill p-'+s;
+  document.getElementById('connTxt').textContent=t;
+}
+
+function getCreds(){ return {host:document.getElementById('host').value.trim(),port:document.getElementById('port').value.trim(),username:document.getElementById('username').value.trim(),password:document.getElementById('password').value}; }
+
+// ── Diagnose ──────────────────────────────────────────────────────────
+async function startDiag(){
+  var cr=getCreds(); if(!cr.host||!cr.password){ alert('Host and password required'); return; }
+  document.getElementById('btnRun').disabled=true; document.getElementById('btnRpt').disabled=true;
+  document.getElementById('sumRow').style.display=''; document.getElementById('findingsBlock').style.display='';
+  setPill('conn','Connecting...'); document.getElementById('prog').style.display='';
+  allResults={};
+  document.querySelectorAll('.chk').forEach(function(el){
+    el.querySelector('.chk-ic').textContent='·';
+    var b=el.querySelector('.chk-b'); b.className='chk-b cb-p'; b.textContent='pending';
+    var o=el.querySelector('.chk-pre'); if(o) o.textContent='—'; el.classList.remove('xp');
+  });
+  ['nC','nW','nOk','nT'].forEach(function(id){ document.getElementById(id).textContent='0'; });
+  document.getElementById('findingsList').innerHTML='';
+  var entry={time:new Date().toLocaleTimeString(),host:cr.host,crits:0,warns:0,ok:0};
+  try{
+    var resp=await fetch('/diagnose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cr)});
+    var rdr=resp.body.getReader(),dec=new TextDecoder(),buf='';
+    while(true){
+      var ck=await rdr.read(); if(ck.done) break;
+      buf+=dec.decode(ck.value,{stream:true});
+      var pts=buf.split('\n'); buf=pts.pop();
+      for(var j=0;j<pts.length;j++){
+        var ln=pts[j]; if(ln.indexOf('data: ')!==0) continue;
+        var msg; try{ msg=JSON.parse(ln.slice(6)); }catch(e){ continue; }
+        if(msg.type==='connected'){ setPill('ok','Connected'); document.getElementById('hdrNvr').textContent=cr.host; }
+        else if(msg.type==='progress'){
+          document.getElementById('progTx').textContent=msg.label;
+          document.getElementById('progFi').style.width=(msg.idx/allChecks.length*100)+'%';
+          var el=document.getElementById('chk_'+msg.id);
+          if(el){ el.querySelector('.chk-ic').textContent='›'; var b=el.querySelector('.chk-b'); b.className='chk-b cb-r'; b.textContent='running'; }
+        } else if(msg.type==='result'){
+          allResults[msg.id]=msg.result;
+          var el=document.getElementById('chk_'+msg.id);
+          if(el){ el.querySelector('.chk-ic').textContent=msg.result.error?'✗':'✓'; var b=el.querySelector('.chk-b'); b.className='chk-b '+(msg.result.error?'cb-e':'cb-d'); b.textContent=msg.result.error?'error':'done'; var o=document.getElementById('o_'+msg.id); if(o) o.textContent=msg.result.output||'(no output)'; }
+          document.getElementById('nT').textContent=Object.keys(allResults).length;
+        } else if(msg.type==='analysis'){
+          analysisData=msg.analysis; renderFindings(msg.analysis);
+          entry.crits=msg.analysis.issues.filter(function(i){ return i.severity==='critical'; }).length;
+          entry.warns=msg.analysis.issues.filter(function(i){ return i.severity==='warning'; }).length;
+          entry.ok=msg.analysis.ok.length;
+        } else if(msg.type==='done'){
+          document.getElementById('prog').style.display='none';
+          document.getElementById('btnRun').disabled=false; document.getElementById('btnRpt').disabled=false;
+          setPill('ok','Done · '+allChecks.length+' checks');
+          addHist(entry); loadCamNames(); markProfStatus(cr.host,'ok');
+        } else if(msg.type==='error'){
+          setPill('err',msg.message); document.getElementById('btnRun').disabled=false; markProfStatus(cr.host,'err');
+        }
+      }
+    }
+  }catch(e){ setPill('err',e.message); document.getElementById('btnRun').disabled=false; }
+}
+
+function renderFindings(a){
+  var list=document.getElementById('findingsList'); list.innerHTML='';
+  document.getElementById('nC').textContent=a.issues.filter(function(i){ return i.severity==='critical'; }).length;
+  document.getElementById('nW').textContent=a.issues.filter(function(i){ return i.severity==='warning'; }).length;
+  document.getElementById('nOk').textContent=a.ok.length;
+  a.issues.forEach(function(issue){
+    var r=document.createElement('div');
+    var cls={critical:'f-c',warning:'f-w',info:'f-i',ok:'f-ok'}[issue.severity]||'f-i';
+    var sc={critical:'fc',warning:'fw',info:'fi',ok:'fok'}[issue.severity]||'fi';
+    r.className='finding '+cls;
+    r.innerHTML='<span class="fsev '+sc+'">'+issue.severity.toUpperCase()+'</span><span>'+esc(issue.msg)+'</span>';
+    list.appendChild(r);
+  });
+  a.ok.forEach(function(msg){
+    var r=document.createElement('div'); r.className='finding f-ok';
+    r.innerHTML='<span class="fsev fok">OK</span><span>'+esc(msg)+'</span>'; list.appendChild(r);
+  });
+}
+
+async function runAct(action){
+  var cr=getCreds(); if(!cr.host||!cr.password){ alert('Enter connection details first'); return; }
+  if(action.confirm&&!confirm('Run: '+action.label+'?')) return;
+  var res=document.getElementById('actRes'); res.style.display='';
+  document.getElementById('actRT').textContent=action.label;
+  var pre=document.getElementById('actRP'); pre.textContent='Running...';
+  res.scrollIntoView({behavior:'smooth',block:'nearest'});
+  try{
+    var resp=await fetch('/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},cr,{actionId:action.id}))});
+    var rdr=resp.body.getReader(),dec=new TextDecoder(),buf=''; pre.textContent='';
+    while(true){
+      var ck=await rdr.read(); if(ck.done) break;
+      buf+=dec.decode(ck.value,{stream:true});
+      var pts=buf.split('\n'); buf=pts.pop();
+      for(var j=0;j<pts.length;j++){
+        var ln=pts[j]; if(ln.indexOf('data: ')!==0) continue;
+        var msg; try{ msg=JSON.parse(ln.slice(6)); }catch(e){ continue; }
+        if(msg.type==='output'){ pre.textContent+=msg.text; pre.scrollTop=pre.scrollHeight; }
+      }
+    }
+  }catch(e){ pre.textContent='Error: '+e.message; }
+}
+
+// ── RAM ───────────────────────────────────────────────────────────────
+function toggleMon(){
+  if(monInt){ clearInterval(monInt); monInt=null; document.getElementById('btnMon').classList.remove('on'); document.getElementById('btnMon').textContent='Start live monitor (30s)'; document.getElementById('ramM').textContent='Not polling'; }
+  else { document.getElementById('btnMon').classList.add('on'); document.getElementById('btnMon').textContent='Stop monitor'; pollRam(); monInt=setInterval(pollRam,30000); }
+}
+async function pollRam(){
+  var cr=getCreds(); if(!cr.host||!cr.password) return;
+  try{
+    var d=await fetch('/poll-ram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cr)}).then(r=>r.json());
+    if(d.mb!=null){
+      document.getElementById('ramV').textContent=d.mb.toLocaleString();
+      var b=document.getElementById('ramB');
+      if(d.mb>14000){ b.className='ram-b rb-c'; b.textContent='CRITICAL'; }
+      else if(d.mb>8000){ b.className='ram-b rb-w'; b.textContent='WARNING'; }
+      else { b.className='ram-b rb-ok'; b.textContent='OK'; }
+      sparkData.push(d.mb); if(sparkData.length>20) sparkData.shift(); drawSpark();
+      document.getElementById('ramM').textContent='Updated '+new Date().toLocaleTimeString()+' · '+sparkData.length+' samples';
+    }
+  }catch(e){}
+}
+function drawSpark(){
+  var c=document.getElementById('spark'),ctx=c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  if(sparkData.length<2) return;
+  var mx=Math.max(...sparkData)*1.1||1,mn=Math.min(...sparkData)*0.9;
+  ctx.beginPath(); ctx.strokeStyle='#3d6fff'; ctx.lineWidth=1.5;
+  sparkData.forEach(function(v,i){ var x=(i/(sparkData.length-1))*c.width,y=c.height-((v-mn)/(mx-mn))*c.height; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+  ctx.stroke();
+}
+
+function addHist(e){
+  runHistory.unshift(e);
+  var list=document.getElementById('histList');
+  list.innerHTML=runHistory.slice(0,8).map(function(r){
+    var t='';
+    if(r.crits) t+='<span class="htag htc">'+r.crits+' crit</span>';
+    if(r.warns) t+='<span class="htag htw">'+r.warns+' warn</span>';
+    if(r.ok) t+='<span class="htag hto">'+r.ok+' ok</span>';
+    return '<div class="hi"><div class="hi-time">'+r.time+'</div><div class="hi-host">'+esc(r.host)+'</div><div class="hi-tags">'+t+'</div></div>';
+  }).join('');
+}
+
+function saveReport(){
+  var cr=getCreds();
+  fetch('/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({results:allResults,analysis:analysisData,host:cr.host,timestamp:new Date().toLocaleString()})})
+    .then(r=>r.blob()).then(function(b){ var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='nvr-diag-'+Date.now()+'.txt'; a.click(); });
+}
+
+// ── Recovery ──────────────────────────────────────────────────────────
+async function loadCamNames(){
+  var cr=getCreds();
+  try{ var d=await fetch('/ubv/camera-names',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cr)}).then(r=>r.json()); macToName=d.macToName||{}; }catch(e){ macToName={}; }
+}
+
+async function loadCams(){
+  var cr=getCreds(); if(!cr.host||!cr.password){ alert('Enter connection details first'); return; }
+  var w=document.getElementById('cgWrap'); w.innerHTML='<div class="ldg">Loading cameras...</div>';
+  if(!Object.keys(macToName).length) await loadCamNames();
+  try{
+    var dd=await fetch('/ubv/dates',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cr)}).then(r=>r.json());
+    if(dd.error){ w.innerHTML='<div class="ldg" style="color:var(--red)">'+esc(dd.error)+'</div>'; return; }
+    var cams=Object.entries(macToName).map(function(e){ return {mac:e[0],name:e[1]}; }).sort(function(a,b){ return a.name.localeCompare(b.name); });
+    if(!cams.length){ w.innerHTML='<div class="ldg">No camera names found.</div>'; return; }
+    loadedDates = dd.dates || [];
+    loadedCams = cams;
+    w.innerHTML='<div class="cam-grid">'+cams.map(function(cam,i){
+      return '<div class="cam-c" id="cc_'+cam.mac+'" data-idx="'+i+'">' +
+        '<div class="cam-n">'+esc(cam.name)+'</div><div class="cam-m">'+esc(cam.mac.match(/.{2}/g).join(':'))+'</div></div>';
+    }).join('')+'</div>';
+    w.querySelectorAll('.cam-c').forEach(function(el){
+      el.addEventListener('click', function(){ selCamFn(parseInt(el.dataset.idx)); });
+    });
+  }catch(e){ w.innerHTML='<div class="ldg" style="color:var(--red)">'+esc(e.message)+'</div>'; }
+}
+
+function selCamFn(idx){
+  var cam=loadedCams[idx]; if(!cam) return;
+  var mac=cam.mac, name=cam.name;
+  var dates=loadedDates;
+  selCam={mac:mac,name:name}; selDate=null; selFile=null; allFiles=[];
+  document.querySelectorAll('.cam-c').forEach(function(el){ el.classList.remove('sel'); });
+  var c=document.getElementById('cc_'+mac); if(c) c.classList.add('sel');
+  document.getElementById('sb1').classList.add('done');
+  document.getElementById('pDate').style.display=''; document.getElementById('pFiles').style.display='none'; document.getElementById('pRecover').style.display='none';
+  var w=document.getElementById('dgWrap');
+  if(!dates||!dates.length){ w.innerHTML='<div class="ldg">No footage dates found.</div>'; return; }
+  w.innerHTML='<div class="dates">'+dates.map(function(d,i){ var p=d.split('/'); return '<div class="dchip" id="dc_'+d.replace(/\//g,'_')+'" onclick="selDateFn('+i+')">'+p[1]+'/'+p[2]+'/'+p[0]+'</div>'; }).join('')+'</div>';
+}
+
+async function selDateFn(idx){
+  var dp=loadedDates[idx];
+  if(!dp) return;
+  selDate=dp; selFile=null;
+  document.querySelectorAll('.dchip').forEach(function(el){ el.classList.remove('sel'); });
+  var dc=document.getElementById('dc_'+dp.replace(/\//g,'_')); if(dc) dc.classList.add('sel');
+  document.getElementById('sb2').classList.add('done');
+  document.getElementById('pFiles').style.display=''; document.getElementById('pRecover').style.display='none';
+  document.getElementById('fbody').innerHTML='<div class="empty">Loading...</div>'; document.getElementById('fcnt').textContent='';
+  var cr=getCreds();
+  try{
+    var d=await fetch('/ubv/list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},cr,{datePath:dp}))}).then(r=>r.json());
+    if(d.error){ document.getElementById('fbody').innerHTML='<div class="empty" style="color:var(--red)">'+esc(d.error)+'</div>'; return; }
+    allFiles=d.files.filter(function(f){ return f.mac.toUpperCase()===selCam.mac.toUpperCase(); }).sort(function(a,b){ return (a.utcDate||'').localeCompare(b.utcDate||''); });
+    renderFiles();
+  }catch(e){ document.getElementById('fbody').innerHTML='<div class="empty" style="color:var(--red)">'+esc(e.message)+'</div>'; }
+}
+
+function setCh(ch){
+  chFil=ch;
+  var m={all:'chAll','0':'chMain','1':'chS1','2':'chS2'};
+  Object.values(m).forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('active'); });
+  var el=document.getElementById(m[ch]); if(el) el.classList.add('active');
+  renderFiles();
+}
+
+function utcToLocal(utcStr) {
+  if (!utcStr || utcStr === '?') return '';
+  try {
+    var d = new Date(utcStr.replace(' UTC', 'Z'));
+    var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    var local = d.toLocaleString('en-US', {
+      month: '2-digit', day: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      timeZoneName: 'short', hour12: false
+    });
+    return local;
+  } catch(e) { return ''; }
+}
+
+function renderFiles(){
+  var s=document.getElementById('fsearch').value.toLowerCase();
+  var fl=allFiles.filter(function(f){ return (chFil==='all'||f.channel===chFil)&&(!s||(f.utcDate||'').toLowerCase().includes(s)||(f.size||'').toLowerCase().includes(s)); });
+  document.getElementById('fcnt').textContent=fl.length+' clip'+(fl.length!==1?'s':'');
+  if(!fl.length){ document.getElementById('fbody').innerHTML='<div class="empty">No clips match.</div>'; return; }
+  var chL={'0':'Main','1':'Sub1','2':'Sub2'}; var chC={'0':'cm','1':'cs1','2':'cs2'};
+  var fbody=document.getElementById('fbody');
+  fbody.innerHTML=fl.map(function(f){
+    var isSel=selFile&&selFile.fullPath===f.fullPath; var oi=allFiles.indexOf(f);
+    var local=utcToLocal(f.utcDate);
+    return '<div class="frow'+(isSel?' sel':'')+'" data-idx="'+oi+'">'+
+      '<div><span class="cpill '+(chC[f.channel]||'cm')+'">'+(chL[f.channel]||f.channel)+'</span></div>'+
+      '<div style="font-family:var(--mono);font-size:11px;color:var(--txt2)">'+esc(f.size)+'</div>'+
+      '<div style="font-family:var(--mono);font-size:11px;color:var(--txt2)">'+
+        (local ? local : esc(f.utcDate||'?'))+
+        (local ? '<div style="font-size:10px;color:var(--txt3)">'+esc(f.utcDate||'')+'</div>' : '')+
+      '</div>'+
+      '<div></div>'+
+      '<div><button class="bsm bsm-p" style="padding:4px 10px;font-size:11px" data-idx="'+oi+'">Select</button></div></div>';
+  }).join('');
+  fbody.querySelectorAll('.frow').forEach(function(el){
+    el.addEventListener('click', function(){ selFileFn(parseInt(el.dataset.idx)); });
+    var btn=el.querySelector('button');
+    if(btn) btn.addEventListener('click', function(e){ e.stopPropagation(); selFileFn(parseInt(btn.dataset.idx)); });
+  });
+}
+
+function selFileFn(i){
+  selFile=allFiles[i]; document.getElementById('sb3').classList.add('done'); renderFiles();
+  var chL={'0':'Main (high res)','1':'Sub1','2':'Sub2 (low res)'};
+  var local=utcToLocal(selFile.utcDate);
+  document.getElementById('selFC').innerHTML=
+    '<strong>'+esc(selCam?selCam.name:selFile.mac)+'</strong> — '+(chL[selFile.channel]||selFile.channel)+
+    '<div class="sfm">'+
+    '<div class="sfmf"><div class="sfml">Local time</div><div class="sfmv">'+(local||'—')+'</div></div>'+
+    '<div class="sfmf"><div class="sfml">UTC</div><div class="sfmv">'+esc(selFile.utcDate||'?')+'</div></div>'+
+    '<div class="sfmf"><div class="sfml">Size</div><div class="sfmv">'+esc(selFile.size)+'</div></div>'+
+    '<div class="sfmf"><div class="sfml">File</div><div class="sfmv" style="font-size:10px;word-break:break-all">'+esc(selFile.name)+'</div></div>'+
+    '</div>';
+  var pr=document.getElementById('pRecover'); pr.style.display='';
+  document.getElementById('inspWrap').style.display='none'; document.getElementById('pipeWrap').style.display='none'; document.getElementById('dlWrap').style.display='none';
+  pr.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+async function inspectUbv(){
+  if(!selFile) return;
+  var w=document.getElementById('inspWrap'),log=document.getElementById('inspLog');
+  w.style.display=''; log.textContent='Running ubnt_ubvinfo (read-only)...\n';
+  var cr=getCreds();
+  try{ var d=await fetch('/ubv/inspect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},cr,{remotePath:selFile.fullPath}))}).then(r=>r.json()); log.textContent=d.error?'Error: '+d.error:d.info; }
+  catch(e){ log.textContent='Error: '+e.message; }
+}
+
+async function startRec(){
+  if(!selFile) return;
+  var cr=getCreds(); var fps=document.getElementById('recFps').value;
+  var ts=document.getElementById('recTS').value.trim(); var te=document.getElementById('recTE').value.trim();
+  var pw=document.getElementById('pipeWrap'); pw.style.display='';
+  pw.scrollIntoView({behavior:'smooth',block:'nearest'});
+  var log=document.getElementById('recLog'); log.textContent='';
+  document.getElementById('dlWrap').style.display=''; document.getElementById('btnRec').disabled=true;
+  [1,2,3,4,5].forEach(function(n){ var el=document.getElementById('rs'+n); if(el) el.className='rstep'; });
+  var curS=0; function markS(n,s){ var el=document.getElementById('rs'+n); if(el) el.className='rstep '+s; }
+  try{
+    var resp=await fetch('/ubv/recover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},cr,{remotePath:selFile.fullPath,fps:fps,trimStart:ts,trimEnd:te}))});
+    var rdr=resp.body.getReader(),dec=new TextDecoder(),buf='';
+    while(true){
+      var ck=await rdr.read(); if(ck.done) break;
+      buf+=dec.decode(ck.value,{stream:true});
+      var pts=buf.split('\n'); buf=pts.pop();
+      for(var j=0;j<pts.length;j++){
+        var ln=pts[j]; if(ln.indexOf('data: ')!==0) continue;
+        var msg; try{ msg=JSON.parse(ln.slice(6)); }catch(ex){ continue; }
+        if(msg.type==='step'){ if(curS>0) markS(curS,'done'); curS=msg.step; markS(curS,'active'); var se=document.getElementById('rs'+msg.step); if(se) se.textContent=msg.step+'. '+msg.text; log.textContent+='\n'+msg.text+'\n'; log.scrollTop=log.scrollHeight; }
+        else if(msg.type==='log'){ log.textContent+=msg.text; log.scrollTop=log.scrollHeight; }
+        else if(msg.type==='done'){ if(curS>0) markS(curS,'done'); if(msg.downloadKey){ var b=document.getElementById('dlBtn'); b.href='/ubv/download/'+encodeURIComponent(msg.downloadKey); b.textContent='Download '+msg.downloadKey+' ('+( msg.sizeMB||'?')+' MB)'; document.getElementById('dlWrap').style.display=''; document.getElementById('dlWrap').scrollIntoView({behavior:'smooth',block:'nearest'}); } document.getElementById('btnRec').disabled=false; }
+        else if(msg.type==='error'){ if(curS>0) markS(curS,'error'); log.textContent+='\nERROR: '+msg.text; log.scrollTop=log.scrollHeight; document.getElementById('btnRec').disabled=false; }
+      }
+    }
+  }catch(e){ log.textContent+='\nError: '+e.message; document.getElementById('btnRec').disabled=false; }
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+loadProfs();
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "protect-bypass",
+  "version": "1.0.0",
+  "description": "UniFi Protect diagnostic and footage recovery tool",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "setup": "node scripts/setup.js",
+    "postinstall": "node scripts/setup.js --post-install"
+  },
+  "keywords": ["unifi", "protect", "nvr", "ubv", "footage", "recovery"],
+  "author": "Jason Mello <jason@stellartechco.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/protect-bypass"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "ssh2": "^1.17.0"
+  }
+}
